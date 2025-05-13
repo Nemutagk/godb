@@ -4,11 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/Nemutagk/godb/definitions/db"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+var listConnectionStabilizedOnce sync.Once
+var connectionManagerBuil *ConnectionManager
 
 type ConnectionManager struct {
 	Connections map[string]interface{}
@@ -33,23 +37,27 @@ func (cm *ConnectionManager) GetConnection(name string) (any, error) {
 }
 
 func InitConnections(connections map[string]db.DbConnection) *ConnectionManager {
-	connectionManager := NewConnectionManager()
+	listConnectionStabilizedOnce.Do(func() {
+		connectionManager := NewConnectionManager()
 
-	for name, connection := range connections {
-		switch connection.Driver {
-		case "mongo", "mongodb":
-			conn, err := mongoConnection(connection)
-			if err != nil {
-				panic(fmt.Errorf("failed to connect to MongoDB: %w", err))
+		for name, connection := range connections {
+			switch connection.Driver {
+			case "mongo", "mongodb":
+				conn, err := mongoConnection(connection)
+				if err != nil {
+					panic(fmt.Errorf("failed to connect to MongoDB: %w", err))
+				}
+
+				connectionManager.AddConnection(name, conn)
+			default:
+				panic(fmt.Errorf("unsupported connection type: %s", connection.Driver))
 			}
-
-			connectionManager.AddConnection(name, conn)
-		default:
-			panic(fmt.Errorf("unsupported connection type: %s", connection.Driver))
 		}
-	}
 
-	return connectionManager
+		connectionManagerBuil = connectionManager
+	})
+
+	return connectionManagerBuil
 }
 
 func mongoConnection(connConfig db.DbConnection) (*mongo.Client, error) {
