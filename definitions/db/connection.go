@@ -1,5 +1,7 @@
 package db
 
+// package definitions/db
+
 type DbConnection struct {
 	Driver        string
 	Host          string
