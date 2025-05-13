@@ -70,7 +70,9 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Client, error) {
 	if _, ok := (*connConfig.AnotherConfig)["db_auth"]; !ok {
 		// fmt.Println("db_auth not found in anotherConfig, setting default value")
 		(*connConfig.AnotherConfig)["authSource"] = "admin"
-	} else if _, ok := (*connConfig.AnotherConfig)["cluster"]; ok {
+	}
+
+	if _, ok := (*connConfig.AnotherConfig)["cluster"]; ok {
 		type_connection = "mongodb+srv"
 	}
 
