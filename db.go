@@ -80,7 +80,7 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Client, error) {
 		(*connConfig.AnotherConfig)["authSource"] = "admin"
 	}
 
-	if _, ok := (*connConfig.AnotherConfig)["cluster"]; ok {
+	if isCluster, ok := (*connConfig.AnotherConfig)["cluster"]; ok && isCluster.(bool) {
 		type_connection = "mongodb+srv"
 	}
 
