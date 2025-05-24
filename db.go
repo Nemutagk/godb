@@ -18,6 +18,10 @@ type ConnectionManager struct {
 	Connections map[string]interface{}
 }
 
+type ConnectionWrapper struct {
+	Connection any
+}
+
 func NewConnectionManager() *ConnectionManager {
 	return &ConnectionManager{
 		Connections: make(map[string]interface{}),
@@ -28,11 +32,20 @@ func (cm *ConnectionManager) AddConnection(name string, connection any) {
 	cm.Connections[name] = connection
 }
 
-func (cm *ConnectionManager) GetConnection(name string) (any, error) {
+func (cm *ConnectionManager) GetConnection(name string) (*ConnectionWrapper, error) {
 	connection, exists := cm.Connections[name]
 	if !exists {
 		return nil, errors.New("connection not found")
 	}
+	return &ConnectionWrapper{Connection: connection}, nil
+}
+
+func (cm *ConnectionManager) GetRawConnection(name string) (any, error) {
+	connection, exists := cm.Connections[name]
+	if !exists {
+		return nil, errors.New("connection not found")
+	}
+
 	return connection, nil
 }
 
@@ -60,7 +73,7 @@ func InitConnections(connections map[string]db.DbConnection) *ConnectionManager 
 	return connectionManagerBuil
 }
 
-func mongoConnection(connConfig db.DbConnection) (*mongo.Client, error) {
+func mongoConnection(connConfig db.DbConnection) (*mongo.Database, error) {
 	// Check if the environment variables are set
 	if connConfig.Host == "" || connConfig.Port == "" || connConfig.User == "" || connConfig.Password == "" || connConfig.Database == "" {
 		panic("missing required environment variables for MongoDB connection")
@@ -103,5 +116,18 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Client, error) {
 		return nil, err
 	}
 
-	return connection, nil
+	return connection.Database(connConfig.Database), nil
+}
+
+func (connection *ConnectionWrapper) ToMongoDb() (*mongo.Database, error) {
+	conn, ok := connection.Connection.(*mongo.Database)
+	if !ok {
+		return nil, fmt.Errorf("connection is not of type *mongo.Database")
+	}
+
+	return conn, nil
+}
+
+func (connection *ConnectionWrapper) GetRawConnection() interface{} {
+	return connection.Connection
 }
