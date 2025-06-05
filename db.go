@@ -79,8 +79,6 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Database, error) {
 		panic("missing required environment variables for MongoDB connection")
 	}
 
-	type_connection := "mongodb"
-
 	if connConfig.AnotherConfig == nil {
 		// fmt.Println("anotherConfig not found, setting default value")
 		connConfig.AnotherConfig = &map[string]interface{}{
@@ -93,11 +91,12 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Database, error) {
 		(*connConfig.AnotherConfig)["authSource"] = "admin"
 	}
 
+	var mongoUri string
 	if isCluster, ok := (*connConfig.AnotherConfig)["cluster"]; ok && isCluster.(bool) {
-		type_connection = "mongodb+srv"
+		mongoUri = "mongodb+srv://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
+	} else {
+		mongoUri = "mongodb://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + ":" + connConfig.Port + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
 	}
-
-	mongoUri := type_connection + "://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + ":" + connConfig.Port + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
 
 	if connConfig.AnotherConfig != nil {
 		mongoUri = mongoUri + "?"
@@ -107,7 +106,6 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Database, error) {
 		mongoUri = mongoUri[:len(mongoUri)-1] // Remove the trailing '&'
 	}
 
-	// fmt.Println("MongoDB URI:", mongoUri)
 	options := options.Client().ApplyURI(mongoUri)
 	connection, err := mongo.Connect(context.TODO(), options)
 
