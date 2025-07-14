@@ -5,6 +5,7 @@ go 1.23.8
 require go.mongodb.org/mongo-driver v1.17.3
 
 require (
+	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
