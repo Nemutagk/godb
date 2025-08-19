@@ -66,8 +66,6 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Client, error) {
 		panic("missing required environment variables for MongoDB connection")
 	}
 
-	type_connection := "mongodb"
-
 	if connConfig.AnotherConfig == nil {
 		// fmt.Println("anotherConfig not found, setting default value")
 		connConfig.AnotherConfig = &map[string]interface{}{
@@ -75,23 +73,38 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Client, error) {
 		}
 	}
 
-	if _, ok := (*connConfig.AnotherConfig)["db_auth"]; !ok {
+	if _, ok := (*connConfig.AnotherConfig)["authSource"]; !ok {
 		// fmt.Println("db_auth not found in anotherConfig, setting default value")
 		(*connConfig.AnotherConfig)["authSource"] = "admin"
 	}
 
-	if _, ok := (*connConfig.AnotherConfig)["cluster"]; ok {
-		type_connection = "mongodb+srv"
+	if _, ok := (*connConfig.AnotherConfig)["retryWrites"]; !ok {
+		// fmt.Println("db_auth not found in anotherConfig, setting default value")
+		(*connConfig.AnotherConfig)["retryWrites"] = "true"
 	}
 
-	mongoUri := type_connection + "://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + ":" + connConfig.Port + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
+	if _, ok := (*connConfig.AnotherConfig)["w"]; !ok {
+		// fmt.Println("db_auth not found in anotherConfig, setting default value")
+		(*connConfig.AnotherConfig)["w"] = "majority"
+	}
+
+	var mongoUri string
+	if _, ok := (*connConfig.AnotherConfig)["cluster"]; !ok {
+		mongoUri = "mongodb://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + ":" + connConfig.Port + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
+	} else {
+		mongoUri = "mongodb+srv://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
+	}
 
 	if connConfig.AnotherConfig != nil {
 		mongoUri = mongoUri + "?"
 		for key, value := range *connConfig.AnotherConfig {
+			if key == "cluster" {
+				continue
+			}
+
 			mongoUri = mongoUri + key + "=" + fmt.Sprintf("%v", value) + "&"
 		}
-		mongoUri = mongoUri[:len(mongoUri)-1] // Remove the trailing '&'
+		mongoUri = mongoUri[:len(mongoUri)-1]
 	}
 
 	// fmt.Println("MongoDB URI:", mongoUri)
