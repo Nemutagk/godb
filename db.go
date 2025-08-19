@@ -110,7 +110,7 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Client, error) {
 	cred := options.Credential{
 		Username:   connConfig.User,
 		Password:   connConfig.Password,
-		AuthSource: connConfig.AnotherConfig["authSource"].(string),
+		AuthSource: (*connConfig.AnotherConfig)["authSource"].(string),
 		// Forzar mecanismo si hay problemas:
 		// AuthMechanism: "SCRAM-SHA-256",
 	}
