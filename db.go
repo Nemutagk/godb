@@ -90,7 +90,7 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Client, error) {
 
 	var mongoUri string
 	if _, ok := (*connConfig.AnotherConfig)["cluster"]; !ok {
-		mongoUri = "mongodb://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + ":" + connConfig.Port + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
+		mongoUri = "mongodb://" + connConfig.Host + ":" + connConfig.Port + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
 	} else {
 		mongoUri = "mongodb+srv://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
 	}
@@ -98,7 +98,7 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Client, error) {
 	if connConfig.AnotherConfig != nil {
 		mongoUri = mongoUri + "?"
 		for key, value := range *connConfig.AnotherConfig {
-			if key == "cluster" {
+			if key == "cluster" || key == "authSource" {
 				continue
 			}
 
@@ -107,9 +107,18 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Client, error) {
 		mongoUri = mongoUri[:len(mongoUri)-1]
 	}
 
+	cred := options.Credential{
+		Username:   connConfig.User,
+		Password:   connConfig.Password,
+		AuthSource: connConfig.AnotherConfig["authSource"].(string),
+		// Forzar mecanismo si hay problemas:
+		// AuthMechanism: "SCRAM-SHA-256",
+	}
+
+	clientOpts := options.Client().ApplyURI(mongoUri).SetAuth(cred)
+
 	// fmt.Println("MongoDB URI:", mongoUri)
-	options := options.Client().ApplyURI(mongoUri)
-	connection, err := mongo.Connect(context.TODO(), options)
+	connection, err := mongo.Connect(context.TODO(), clientOpts)
 
 	if err != nil {
 		fmt.Println("Error connecting to MongoDB:", err)
