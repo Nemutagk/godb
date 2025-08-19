@@ -92,7 +92,7 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Client, error) {
 	if _, ok := (*connConfig.AnotherConfig)["cluster"]; !ok {
 		mongoUri = "mongodb://" + connConfig.Host + ":" + connConfig.Port + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
 	} else {
-		mongoUri = "mongodb+srv://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
+		mongoUri = "mongodb+srv://" + connConfig.Host + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
 	}
 
 	if connConfig.AnotherConfig != nil {
