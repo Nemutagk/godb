@@ -88,9 +88,14 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Database, error) {
 		}
 	}
 
-	if _, ok := (*connConfig.AnotherConfig)["db_auth"]; !ok {
-		// fmt.Println("db_auth not found in anotherConfig, setting default value")
+	if _, ok := (*connConfig.AnotherConfig)["authSource"]; !ok {
 		(*connConfig.AnotherConfig)["authSource"] = "admin"
+	}
+	if _, ok := (*connConfig.AnotherConfig)["retryWrites"]; !ok {
+		(*connConfig.AnotherConfig)["retryWrites"] = "true"
+	}
+	if _, ok := (*connConfig.AnotherConfig)["w"]; !ok {
+		(*connConfig.AnotherConfig)["w"] = "majority"
 	}
 
 	var mongoUri string
@@ -98,10 +103,6 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Database, error) {
 		mongoUri = "mongodb+srv://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
 	} else {
 		mongoUri = "mongodb://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + ":" + connConfig.Port + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
-	}
-
-	if _, ok := (*connConfig.AnotherConfig)["show_uri"]; ok {
-		log.Println("Connecting to MongoDB with URI:", MaskMongoURI(mongoUri))
 	}
 
 	if connConfig.AnotherConfig != nil {
@@ -114,6 +115,10 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Database, error) {
 			mongoUri = mongoUri + key + "=" + fmt.Sprintf("%v", value) + "&"
 		}
 		mongoUri = mongoUri[:len(mongoUri)-1] // Remove the trailing '&'
+	}
+
+	if _, ok := (*connConfig.AnotherConfig)["show_uri"]; ok {
+		log.Println("Connecting to MongoDB with URI:", MaskMongoURI(mongoUri))
 	}
 
 	options := options.Client().ApplyURI(mongoUri)
