@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"sync"
 
 	"github.com/Nemutagk/godb/definitions/db"
@@ -99,11 +100,17 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Database, error) {
 		mongoUri = "mongodb://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + ":" + connConfig.Port + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
 	}
 
-	log.Println("Connecting to MongoDB with URI:", mongoUri)
+	if _, ok := (*connConfig.AnotherConfig)["show_uri"]; ok {
+		log.Println("Connecting to MongoDB with URI:", MaskMongoURI(mongoUri))
+	}
 
 	if connConfig.AnotherConfig != nil {
 		mongoUri = mongoUri + "?"
 		for key, value := range *connConfig.AnotherConfig {
+			if key == "cluster" || key == "show_uri" || key == "db_auth" {
+				continue // Skip these keys
+			}
+
 			mongoUri = mongoUri + key + "=" + fmt.Sprintf("%v", value) + "&"
 		}
 		mongoUri = mongoUri[:len(mongoUri)-1] // Remove the trailing '&'
@@ -131,4 +138,29 @@ func (connection *ConnectionWrapper) ToMongoDb() (*mongo.Database, error) {
 
 func (connection *ConnectionWrapper) GetRawConnection() interface{} {
 	return connection.Connection
+}
+
+var mongoCredsRegex = regexp.MustCompile(`^(mongodb(?:\+srv)?://)([^:@/]+)(:([^@/]*))?@`)
+
+func maskTail(s string) string {
+	if len(s) <= 5 {
+		return s
+	}
+	return "***" + s[len(s)-5:]
+}
+
+func MaskMongoURI(uri string) string {
+	m := mongoCredsRegex.FindStringSubmatch(uri)
+	if len(m) == 0 {
+		return uri // no creds en el URI
+	}
+	scheme := m[1]
+	user := m[2]
+	pass := m[4] // puede estar vacío
+	masked := scheme + maskTail(user)
+	if pass != "" {
+		masked += ":" + maskTail(pass)
+	}
+	masked += "@"
+	return mongoCredsRegex.ReplaceAllString(uri, masked)
 }
