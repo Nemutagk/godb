@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/Nemutagk/godb/definitions/db"
@@ -97,6 +98,8 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Database, error) {
 	} else {
 		mongoUri = "mongodb://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + ":" + connConfig.Port + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
 	}
+
+	log.Println("Connecting to MongoDB with URI:", mongoUri)
 
 	if connConfig.AnotherConfig != nil {
 		mongoUri = mongoUri + "?"
