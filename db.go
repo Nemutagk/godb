@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/Nemutagk/godb/definitions/db"
+	"github.com/Nemutagk/goenvars"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -117,7 +118,7 @@ func mongoConnection(connConfig db.DbConnection) (*mongo.Database, error) {
 		mongoUri = mongoUri[:len(mongoUri)-1] // Remove the trailing '&'
 	}
 
-	if _, ok := (*connConfig.AnotherConfig)["show_uri"]; ok {
+	if goenvars.GetEnvBool("GODB_DEBUG_URI", false) {
 		log.Println("Connecting to MongoDB with URI:", MaskMongoURI(mongoUri))
 	}
 
@@ -148,10 +149,10 @@ func (connection *ConnectionWrapper) GetRawConnection() interface{} {
 var mongoCredsRegex = regexp.MustCompile(`^(mongodb(?:\+srv)?://)([^:@/]+)(:([^@/]*))?@`)
 
 func maskTail(s string) string {
-	if len(s) <= 5 {
+	if len(s) <= goenvars.GetEnvInt("GODB_DEBUG_LENGTH", 3) {
 		return s
 	}
-	return "***" + s[len(s)-5:]
+	return "*****" + s[len(s)-goenvars.GetEnvInt("GODB_DEBUG_LENGTH", 3):]
 }
 
 func MaskMongoURI(uri string) string {
