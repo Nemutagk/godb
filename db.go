@@ -38,7 +38,6 @@ func NewConnectionManager() *connectionManager {
 }
 
 func (cm *connectionManager) GetConnection(name string) (*connectionWrapper, error) {
-	log.Println("Getting connection: " + name)
 	if conn, ok := cm.Connections[name]; ok {
 		if conn.Status == ConnectionWrapperStatusActive {
 			return conn, nil
@@ -83,5 +82,11 @@ func (cm *connectionManager) LoadMultipleConnection(listConnections map[string]*
 	for i, conn := range listConnections {
 		log.Println("Loading connection: " + i)
 		cm.Connections[i] = &connectionWrapper{Connection: *conn, Status: ConnectionWrapperStatusInactive}
+		cm.Connections[i].Connection.Adapter.SetConf(i, conn.Config)
 	}
+}
+
+func GetConnection(name string) (*connectionWrapper, error) {
+	mn := NewConnectionManager()
+	return mn.GetConnection(name)
 }

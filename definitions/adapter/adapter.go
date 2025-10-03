@@ -10,7 +10,7 @@ type Config struct {
 }
 
 type Adapter interface {
-	SetConf(conf config.Config) error
+	SetConf(name string, conf config.Config) error
 	Connect() error
 	GetConnection() any
 	Close() error

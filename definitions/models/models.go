@@ -11,6 +11,8 @@ const (
 	FilterComparatorGreaterEqual = ">="
 	FilterComparatorLessEqual    = "<="
 	FilterComparatorLike         = "LIKE"
+	FilterComparatorIsNull       = "IS NULL"
+	FilterComparatorIsNotNull    = "IS NOT NULL"
 )
 
 type Filter struct {
