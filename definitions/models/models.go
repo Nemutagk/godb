@@ -1,18 +1,18 @@
 package models
 
 const (
-	FilterOperatorAnd = "AND"
-	FilterOperatorOr  = "OR"
+	FilterSqlOperatorAnd = "AND"
+	FilterSqlOperatorOr  = "OR"
 
-	FilterComparatorEqual        = "="
-	FilterComparatorNotEqual     = "!="
-	FilterComparatorGreaterThan  = ">"
-	FilterComparatorLessThan     = "<"
-	FilterComparatorGreaterEqual = ">="
-	FilterComparatorLessEqual    = "<="
-	FilterComparatorLike         = "LIKE"
-	FilterComparatorIsNull       = "IS NULL"
-	FilterComparatorIsNotNull    = "IS NOT NULL"
+	FilterSqlComparatorEqual        = "="
+	FilterSqlComparatorNotEqual     = "!="
+	FilterSqlComparatorGreaterThan  = ">"
+	FilterSqlComparatorLessThan     = "<"
+	FilterSqlComparatorGreaterEqual = ">="
+	FilterSqlComparatorLessEqual    = "<="
+	FilterSqlComparatorLike         = "LIKE"
+	FilterSqlComparatorIsNull       = "IS NULL"
+	FilterSqlComparatorIsNotNull    = "IS NOT NULL"
 )
 
 type Filter struct {
