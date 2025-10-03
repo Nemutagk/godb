@@ -1,172 +1,87 @@
 package godb
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"log"
-	"regexp"
 	"sync"
 
-	"github.com/Nemutagk/godb/definitions/db"
-	"github.com/Nemutagk/goenvars"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/Nemutagk/godb/definitions/connection"
 )
 
+var ErrConnectionNotFound = errors.New("connection not found")
+
 var listConnectionStabilizedOnce sync.Once
-var connectionManagerBuil *ConnectionManager
+var connectionManagerBuil *connectionManager
 
-type ConnectionManager struct {
-	Connections map[string]interface{}
+type connectionManager struct {
+	Connections map[string]*connectionWrapper
 }
 
-type ConnectionWrapper struct {
-	Connection any
+type connectionWrapper struct {
+	Connection connection.Connection
+	Status     string
 }
 
-func NewConnectionManager() *ConnectionManager {
-	return &ConnectionManager{
-		Connections: make(map[string]interface{}),
-	}
-}
+const ConnectionWrapperStatusActive = "active"
+const ConnectionWrapperStatusInactive = "inactive"
+const ConnectionWrapperStatusClose = "close"
+const ConnectionWrapperStatusError = "error"
 
-func (cm *ConnectionManager) AddConnection(name string, connection any) {
-	cm.Connections[name] = connection
-}
-
-func (cm *ConnectionManager) GetConnection(name string) (*ConnectionWrapper, error) {
-	connection, exists := cm.Connections[name]
-	if !exists {
-		return nil, errors.New("connection not found")
-	}
-	return &ConnectionWrapper{Connection: connection}, nil
-}
-
-func (cm *ConnectionManager) GetRawConnection(name string) (any, error) {
-	connection, exists := cm.Connections[name]
-	if !exists {
-		return nil, errors.New("connection not found")
-	}
-
-	return connection, nil
-}
-
-func InitConnections(connections map[string]db.DbConnection) *ConnectionManager {
+func NewConnectionManager() *connectionManager {
 	listConnectionStabilizedOnce.Do(func() {
-		connectionManager := NewConnectionManager()
-
-		for name, connection := range connections {
-			switch connection.Driver {
-			case "mongo", "mongodb":
-				conn, err := mongoConnection(connection)
-				if err != nil {
-					panic(fmt.Errorf("failed to connect to MongoDB: %w", err))
-				}
-
-				connectionManager.AddConnection(name, conn)
-			default:
-				panic(fmt.Errorf("unsupported connection type: %s", connection.Driver))
-			}
+		connectionManagerBuil = &connectionManager{
+			Connections: make(map[string]*connectionWrapper),
 		}
-
-		connectionManagerBuil = connectionManager
 	})
 
 	return connectionManagerBuil
 }
 
-func mongoConnection(connConfig db.DbConnection) (*mongo.Database, error) {
-	// Check if the environment variables are set
-	if connConfig.Host == "" || connConfig.Port == "" || connConfig.User == "" || connConfig.Password == "" || connConfig.Database == "" {
-		panic("missing required environment variables for MongoDB connection")
-	}
-
-	if connConfig.AnotherConfig == nil {
-		// fmt.Println("anotherConfig not found, setting default value")
-		connConfig.AnotherConfig = &map[string]interface{}{
-			"authSource": "admin",
+func (cm *connectionManager) GetConnection(name string) (*connectionWrapper, error) {
+	log.Println("Getting connection: " + name)
+	if conn, ok := cm.Connections[name]; ok {
+		if conn.Status == ConnectionWrapperStatusActive {
+			return conn, nil
 		}
-	}
 
-	if _, ok := (*connConfig.AnotherConfig)["authSource"]; !ok {
-		(*connConfig.AnotherConfig)["authSource"] = "admin"
-	}
-	if _, ok := (*connConfig.AnotherConfig)["retryWrites"]; !ok {
-		(*connConfig.AnotherConfig)["retryWrites"] = "true"
-	}
-	if _, ok := (*connConfig.AnotherConfig)["w"]; !ok {
-		(*connConfig.AnotherConfig)["w"] = "majority"
-	}
-
-	var mongoUri string
-	if isCluster, ok := (*connConfig.AnotherConfig)["cluster"]; ok && isCluster.(bool) {
-		mongoUri = "mongodb+srv://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
-	} else {
-		mongoUri = "mongodb://" + connConfig.User + ":" + connConfig.Password + "@" + connConfig.Host + ":" + connConfig.Port + "/" + connConfig.Database // + "?authSource=" + (*connConfig.AnotherConfig)["db_auth"].(string)
-	}
-
-	if connConfig.AnotherConfig != nil {
-		mongoUri = mongoUri + "?"
-		for key, value := range *connConfig.AnotherConfig {
-			if key == "cluster" || key == "show_uri" || key == "db_auth" {
-				continue // Skip these keys
-			}
-
-			mongoUri = mongoUri + key + "=" + fmt.Sprintf("%v", value) + "&"
+		if err := conn.Connection.Adapter.Connect(); err != nil {
+			conn.Status = ConnectionWrapperStatusError
+			cm.Connections[name] = conn
+			return nil, err
 		}
-		mongoUri = mongoUri[:len(mongoUri)-1] // Remove the trailing '&'
+
+		conn.Status = ConnectionWrapperStatusActive
+		cm.Connections[name] = conn
+
+		return conn, nil
 	}
 
-	if goenvars.GetEnvBool("GODB_DEBUG_URI", false) {
-		log.Println("Connecting to MongoDB with URI:", MaskMongoURI(mongoUri))
-	}
-
-	options := options.Client().ApplyURI(mongoUri)
-	connection, err := mongo.Connect(context.TODO(), options)
-
-	if err != nil {
-		fmt.Println("Error connecting to MongoDB:", err)
-		return nil, err
-	}
-
-	return connection.Database(connConfig.Database), nil
+	log.Println("Connection not found: " + name)
+	return nil, ErrConnectionNotFound
 }
 
-func (connection *ConnectionWrapper) ToMongoDb() (*mongo.Database, error) {
-	conn, ok := connection.Connection.(*mongo.Database)
-	if !ok {
-		return nil, fmt.Errorf("connection is not of type *mongo.Database")
-	}
-
-	return conn, nil
+func (cm *connectionManager) AddConnection(name string, conn connection.Connection) {
+	log.Println("Adding connection: " + name)
+	cm.Connections[name] = &connectionWrapper{Connection: conn, Status: ConnectionWrapperStatusInactive}
+	log.Println("list connections: ", cm.Connections)
 }
 
-func (connection *ConnectionWrapper) GetRawConnection() interface{} {
-	return connection.Connection
+func (cm *connectionManager) RemoveConnection(name string) {
+	if conn, ok := cm.Connections[name]; ok {
+		conn.Connection.Adapter.Close()
+		conn.Status = ConnectionWrapperStatusClose
+		cm.Connections[name] = conn
+	}
 }
 
-var mongoCredsRegex = regexp.MustCompile(`^(mongodb(?:\+srv)?://)([^:@/]+)(:([^@/]*))?@`)
-
-func maskTail(s string) string {
-	if len(s) <= goenvars.GetEnvInt("GODB_DEBUG_LENGTH", 3) {
-		return s
-	}
-	return "*****" + s[len(s)-goenvars.GetEnvInt("GODB_DEBUG_LENGTH", 3):]
+func (cm *connectionManager) ListConnections() map[string]*connectionWrapper {
+	return cm.Connections
 }
 
-func MaskMongoURI(uri string) string {
-	m := mongoCredsRegex.FindStringSubmatch(uri)
-	if len(m) == 0 {
-		return uri // no creds en el URI
+func (cm *connectionManager) LoadMultipleConnection(listConnections map[string]*connection.Connection) {
+	log.Println("Loading multiple connections...")
+	for i, conn := range listConnections {
+		log.Println("Loading connection: " + i)
+		cm.Connections[i] = &connectionWrapper{Connection: *conn, Status: ConnectionWrapperStatusInactive}
 	}
-	scheme := m[1]
-	user := m[2]
-	pass := m[4] // puede estar vacío
-	masked := scheme + maskTail(user)
-	if pass != "" {
-		masked += ":" + maskTail(pass)
-	}
-	masked += "@"
-	return mongoCredsRegex.ReplaceAllString(uri, masked)
 }
