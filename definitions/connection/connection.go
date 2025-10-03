@@ -1,8 +1,8 @@
 package connection
 
 import (
-	"github.com/Nemutagk/godb/definitions/adapter"
-	"github.com/Nemutagk/godb/definitions/config"
+	"github.com/Nemutagk/godb/v2/definitions/adapter"
+	"github.com/Nemutagk/godb/v2/definitions/config"
 )
 
 type Connection struct {

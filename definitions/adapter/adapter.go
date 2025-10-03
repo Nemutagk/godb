@@ -1,7 +1,7 @@
 package adapter
 
 import (
-	"github.com/Nemutagk/godb/definitions/config"
+	"github.com/Nemutagk/godb/v2/definitions/config"
 )
 
 type Config struct {

@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/Nemutagk/godb/definitions/connection"
+	"github.com/Nemutagk/godb/v2/definitions/connection"
 )
 
 var ErrConnectionNotFound = errors.New("connection not found")
