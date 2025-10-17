@@ -14,4 +14,5 @@ type Adapter interface {
 	Connect() error
 	GetConnection() any
 	Close() error
+	Ping() error
 }
