@@ -9,6 +9,10 @@ import (
 type DriverConnection[T any] interface {
 	GetTableName() string
 	GetOrderColumns() map[string]string
+	// AddRelation(relation Relation)
+	// GetRelations() []Relation
+	// SetLoadRelations(load bool)
+	// GetLoadRelations() bool
 	Get(ctx context.Context, filters models.GroupFilter, opts *models.Options) ([]T, error)
 	GetOne(ctx context.Context, filters models.GroupFilter) (T, error)
 	Create(ctx context.Context, data map[string]any) (T, error)
@@ -17,23 +21,58 @@ type DriverConnection[T any] interface {
 	Count(ctx context.Context, filters models.GroupFilter) (int64, error)
 }
 
-type Repository[T any] struct {
-	Driver      DriverConnection[T]
-	Table       string
-	OrderColumn map[string]string
-	Relations   []any
-	SoftDelete  *string
+type RelationModel interface {
+	GetTableName() string
 }
 
-func NewRepository[T any](driver DriverConnection[T], relations []any, softDelete *string) Repository[T] {
+type Model interface {
+	ScanFields() []any
+}
+
+type Repository[T Model] struct {
+	Driver        DriverConnection[T]
+	Table         string
+	OrderColumn   map[string]string
+	LoadRelations bool
+	SoftDelete    *string
+}
+
+type Relation struct {
+	Model      RelationModel
+	Key        string
+	ForeignKey string
+	Type       string
+}
+
+func NewRepository[T Model](driver DriverConnection[T], softDelete *string) Repository[T] {
 	return Repository[T]{
 		Driver:      driver,
 		Table:       driver.GetTableName(),
 		OrderColumn: driver.GetOrderColumns(),
 		SoftDelete:  softDelete,
-		Relations:   relations,
 	}
+
 }
+
+func (r *Repository[T]) GetTableName() string {
+	return r.Table
+}
+
+// func (r *Repository[T]) AddRelation(relation Relation) {
+// 	r.Driver.AddRelation(relation)
+// }
+
+// func (r *Repository[T]) GetRelations() []Relation {
+// 	return r.Driver.GetRelations()
+// }
+
+// func (r *Repository[T]) SetLoadRelations(load bool) {
+// 	r.Driver.SetLoadRelations(load)
+// }
+
+// func (r *Repository[T]) GetLoadRelations() bool {
+// 	return r.Driver.GetLoadRelations()
+// }
 
 func (r *Repository[T]) Get(ctx context.Context, filters models.GroupFilter, opts *models.Options) ([]T, error) {
 	result, err := r.Driver.Get(ctx, filters, opts)

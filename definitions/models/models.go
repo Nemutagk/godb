@@ -22,6 +22,13 @@ type Filter struct {
 	Comparator *string `json:"comparator"`
 }
 
+type FilterMultipleValue struct {
+	Key        string  `json:"key"`
+	Values     []any   `json:"values"`
+	Operator   *string `json:"operator"`
+	Comparator *string `json:"comparator"`
+}
+
 type GroupFilter struct {
 	Filters  []any  `json:"filters"`
 	Operator string `json:"operator"`
@@ -33,4 +40,5 @@ type Options struct {
 	OrderDir    string
 	Limit       int64
 	Offset      int64
+	Relations   []string
 }
