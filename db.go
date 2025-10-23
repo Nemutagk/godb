@@ -9,6 +9,7 @@ import (
 )
 
 var ErrConnectionNotFound = errors.New("connection not found")
+var ErrNoDocumentsFound = errors.New("no documents found")
 
 var listConnectionStabilizedOnce sync.Once
 var connectionManagerBuil *connectionManager
