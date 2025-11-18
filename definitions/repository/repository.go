@@ -9,13 +9,15 @@ import (
 type DriverConnection[T any] interface {
 	GetTableName() string
 	GetOrderColumns() map[string]string
+	GetConnection() any
 	// AddRelation(relation Relation)
 	// GetRelations() []Relation
 	// SetLoadRelations(load bool)
 	// GetLoadRelations() bool
 	Get(ctx context.Context, filters models.GroupFilter, opts *models.Options) ([]T, error)
 	GetOne(ctx context.Context, filters models.GroupFilter) (T, error)
-	Create(ctx context.Context, data map[string]any) (T, error)
+	Create(ctx context.Context, data map[string]any, opts *models.Options) (T, error)
+	CreateMany(ctx context.Context, data []map[string]any, opts *models.Options) ([]T, error)
 	Update(ctx context.Context, filters models.GroupFilter, data map[string]any) (T, error)
 	Delete(ctx context.Context, filters models.GroupFilter) error
 	Count(ctx context.Context, filters models.GroupFilter) (int64, error)
@@ -93,11 +95,20 @@ func (r *Repository[T]) GetOne(ctx context.Context, filters models.GroupFilter) 
 	return result, nil
 }
 
-func (r *Repository[T]) Create(ctx context.Context, data map[string]any) (T, error) {
+func (r *Repository[T]) Create(ctx context.Context, data map[string]any, opts *models.Options) (T, error) {
 	var zero T
-	result, err := r.Driver.Create(ctx, data)
+	result, err := r.Driver.Create(ctx, data, opts)
 	if err != nil {
 		return zero, err
+	}
+
+	return result, nil
+}
+
+func (r *Repository[T]) CreateMany(ctx context.Context, data []map[string]any, opts *models.Options) ([]T, error) {
+	result, err := r.Driver.CreateMany(ctx, data, opts)
+	if err != nil {
+		return nil, err
 	}
 
 	return result, nil

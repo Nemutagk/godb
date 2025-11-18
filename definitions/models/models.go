@@ -35,10 +35,13 @@ type GroupFilter struct {
 }
 
 type Options struct {
-	Columns     *[]string
-	OrderColumn string
-	OrderDir    string
-	Limit       int64
-	Offset      int64
-	Relations   []string
+	Columns          *[]string
+	OrderColumn      string
+	OrderDir         string
+	Limit            int64
+	Offset           int64
+	Relations        []string
+	PrimaryKey       *string
+	InsertPrimaryKey *bool
+	TimestampsFields *bool
 }
