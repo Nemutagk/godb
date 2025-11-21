@@ -10,10 +10,7 @@ type DriverConnection[T any] interface {
 	GetTableName() string
 	GetOrderColumns() map[string]string
 	GetConnection() any
-	// AddRelation(relation Relation)
-	// GetRelations() []Relation
-	// SetLoadRelations(load bool)
-	// GetLoadRelations() bool
+	AddRelation(relationName string, loader RelationLoader) error
 	Get(ctx context.Context, filters models.GroupFilter, opts *models.Options) ([]T, error)
 	GetOne(ctx context.Context, filters models.GroupFilter, opts *models.Options) (T, error)
 	Create(ctx context.Context, data map[string]any, opts *models.Options) (T, error)
@@ -39,11 +36,8 @@ type Repository[T Model] struct {
 	SoftDelete    *string
 }
 
-type Relation struct {
-	Model      RelationModel
-	Key        string
-	ForeignKey string
-	Type       string
+type RelationLoader interface {
+	Load(ctx context.Context, parentModels []any, childs *[]string) error
 }
 
 func NewRepository[T Model](driver DriverConnection[T], softDelete *string) Repository[T] {
@@ -60,21 +54,13 @@ func (r *Repository[T]) GetTableName() string {
 	return r.Table
 }
 
-// func (r *Repository[T]) AddRelation(relation Relation) {
-// 	r.Driver.AddRelation(relation)
-// }
+func (r *Repository[T]) AddRelation(relationName string, loader RelationLoader) error {
+	if err := r.Driver.AddRelation(relationName, loader); err != nil {
+		return err
+	}
 
-// func (r *Repository[T]) GetRelations() []Relation {
-// 	return r.Driver.GetRelations()
-// }
-
-// func (r *Repository[T]) SetLoadRelations(load bool) {
-// 	r.Driver.SetLoadRelations(load)
-// }
-
-// func (r *Repository[T]) GetLoadRelations() bool {
-// 	return r.Driver.GetLoadRelations()
-// }
+	return nil
+}
 
 func (r *Repository[T]) Get(ctx context.Context, filters models.GroupFilter, opts *models.Options) ([]T, error) {
 	result, err := r.Driver.Get(ctx, filters, opts)
