@@ -15,7 +15,7 @@ type DriverConnection[T any] interface {
 	// SetLoadRelations(load bool)
 	// GetLoadRelations() bool
 	Get(ctx context.Context, filters models.GroupFilter, opts *models.Options) ([]T, error)
-	GetOne(ctx context.Context, filters models.GroupFilter) (T, error)
+	GetOne(ctx context.Context, filters models.GroupFilter, opts *models.Options) (T, error)
 	Create(ctx context.Context, data map[string]any, opts *models.Options) (T, error)
 	CreateMany(ctx context.Context, data []map[string]any, opts *models.Options) ([]T, error)
 	Update(ctx context.Context, filters models.GroupFilter, data map[string]any) (T, error)
@@ -85,9 +85,9 @@ func (r *Repository[T]) Get(ctx context.Context, filters models.GroupFilter, opt
 	return result, nil
 }
 
-func (r *Repository[T]) GetOne(ctx context.Context, filters models.GroupFilter) (T, error) {
+func (r *Repository[T]) GetOne(ctx context.Context, filters models.GroupFilter, opts *models.Options) (T, error) {
 	var zero T
-	result, err := r.Driver.GetOne(ctx, filters)
+	result, err := r.Driver.GetOne(ctx, filters, opts)
 	if err != nil {
 		return zero, err
 	}
