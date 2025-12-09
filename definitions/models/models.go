@@ -44,4 +44,5 @@ type Options struct {
 	PrimaryKey       *string
 	InsertPrimaryKey *bool
 	TimestampsFields *bool
+	ReturnUpdated    *bool
 }

@@ -15,7 +15,7 @@ type DriverConnection[T any] interface {
 	GetOne(ctx context.Context, filters models.GroupFilter, opts *models.Options) (T, error)
 	Create(ctx context.Context, data map[string]any, opts *models.Options) (T, error)
 	CreateMany(ctx context.Context, data []map[string]any, opts *models.Options) ([]T, error)
-	Update(ctx context.Context, filters models.GroupFilter, data map[string]any) (T, error)
+	Update(ctx context.Context, filters models.GroupFilter, data map[string]any, opts *models.Options) (T, error)
 	Delete(ctx context.Context, filters models.GroupFilter) error
 	Count(ctx context.Context, filters models.GroupFilter) (int64, error)
 }
