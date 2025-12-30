@@ -45,4 +45,10 @@ type Options struct {
 	InsertPrimaryKey *bool
 	TimestampsFields *bool
 	ReturnUpdated    *bool
+	Transaction      *Transaction
+}
+
+type Transaction struct {
+	Name string
+	Tx   any
 }

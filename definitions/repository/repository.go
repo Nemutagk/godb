@@ -18,6 +18,9 @@ type DriverConnection[T any] interface {
 	Update(ctx context.Context, filters models.GroupFilter, data map[string]any, opts *models.Options) (T, error)
 	Delete(ctx context.Context, filters models.GroupFilter) error
 	Count(ctx context.Context, filters models.GroupFilter) (int64, error)
+	TransactionStart(ctx context.Context) (*models.Transaction, error)
+	TransactionCommit(ctx context.Context, trans *models.Transaction) error
+	TransactionRollback(ctx context.Context, trans *models.Transaction) error
 }
 
 type RelationModel interface {
